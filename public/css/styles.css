@@ -70,6 +70,11 @@ button {
   border-width: 0;
 }
 
+.delete-btn {
+  background-color: grey;
+  margin-left: 50px;
+}
+
 input[type="text"] {
   text-align: center;
   height: 60px;
