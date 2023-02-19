@@ -7,7 +7,8 @@
         <% newListItems.forEach(function(item) { %>
             <form method="post" action="/delete">
                 <div class="item">
-                    <input type="checkbox" name="checkBox" onchange="this.form.submit()" value="<%= item.id %>">
+                    <input type="hidden" name="listName" value=<%= listTitle%>></input>
+                    <input type="checkbox" name="checkBox" onchange="this.form.submit()" value="<%= item.id %>"></input>
                     <p id="<%= item.id %>"><%= item.name %></p>
                 </div>
             </form>

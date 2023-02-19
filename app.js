@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const date = require(__dirname + "/date.js");
 const mongoose = require("mongoose");
+const _ = require("lodash");
 
 // Set-Ups
 const app = express();
@@ -16,12 +17,8 @@ const itemsSchema = { name: String };
 const Item = mongoose.model("Item", itemsSchema);
 
 // Lists Schema
-const listSchema = {
-    name: String,
-    listItems: [itemsSchema]
-};
+const listSchema = { name: String, listItems: [itemsSchema]};
 const List = mongoose.model("List", listSchema);
-
 
 // Home Route
 app.get("/", function (req, res) {
@@ -36,7 +33,8 @@ app.get("/", function (req, res) {
 });
 
 app.get("/:listName", (req, res) => {
-    const listName = req.params.listName;
+
+    const listName = _.capitalize(req.params.listName);
 
     List.findOne({name: listName }, function(err, foundList) {
         if (!err) {
@@ -73,10 +71,23 @@ app.post("/", function (req, res) {
 // Delte an Item from the List when the checkbox is ticked
 app.post("/delete", (req, res) => {
     const checkedItemID = req.body.checkBox;
-    Item.findByIdAndRemove(checkedItemID, (err) => {
-        err ? console.log(err) : console.log("Successfully removed item");
-    });
-    res.redirect("/");
+    const listName = req.body.listName;
+
+    if (listName === "Today") {
+        Item.findByIdAndRemove(checkedItemID, (err) => {
+            err ? console.log(err) : console.log("Successfully removed item");
+        });
+        res.redirect("/");
+    } else {
+        List.findOneAndUpdate(
+            {name: listName}, 
+            {$pull: {listItems: {_id: checkedItemID}}}, 
+            function(err, foundList) {
+                if(!err) {
+                    res.redirect("/" + listName);
+                }
+        });
+    }
 })
 
 
