@@ -1,42 +1,82 @@
+// Imports
 const express = require("express");
 const bodyParser = require("body-parser");
 const date = require(__dirname + "/date.js");
 const mongoose = require("mongoose");
 
+// Set-Ups
 const app = express();
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
-
-
-// Set-Up Database
 mongoose.connect("mongodb://localhost:27017/todolistDB");
+
+// List Items Schema
 const itemsSchema = { name: String };
 const Item = mongoose.model("Item", itemsSchema);
 
+// Lists Schema
+const listSchema = {
+    name: String,
+    listItems: [itemsSchema]
+};
+const List = mongoose.model("List", listSchema);
+
+
 // Home Route
 app.get("/", function (req, res) {
-
-    day = date.getDate();
 
     Item.find(function(err, items) {
         if (err) {
             console.log(err);
         } else {
-            res.render("list", { listTitle: day, newListItems: items });
+            res.render("list", { listTitle: "Today", newListItems: items });
         }
     })
 });
 
+app.get("/:listName", (req, res) => {
+    const listName = req.params.listName;
+
+    List.findOne({name: listName }, function(err, foundList) {
+        if (!err) {
+            if (!foundList) {
+                const list = new List({name: listName, items: []});
+                list.save();
+                res.redirect("/" + listName);
+            } else {
+                res.render("list", {listTitle: foundList.name, newListItems: foundList.listItems});
+            }
+        }
+    })
+})
+
 app.post("/", function (req, res) {
+
     const newItemName = req.body.newItem;
+    const listName = req.body.list;
+
     const newItem = new Item(({name: newItemName}));
-    newItem.save();
-    res.redirect("/");
+
+    if (listName === "Today") {
+        newItem.save();
+        res.redirect("/");
+    } else {
+        List.findOne({name: listName}, function(err, foundList) {
+            foundList.listItems.push(newItem);
+            foundList.save();
+            res.redirect("/" + listName);
+        })
+    }
 });
 
-app.get("/work", function(req, res) {
-    res.render("list", {listTitle: "Work", newListItems: workItems});
+// Delte an Item from the List when the checkbox is ticked
+app.post("/delete", (req, res) => {
+    const checkedItemID = req.body.checkBox;
+    Item.findByIdAndRemove(checkedItemID, (err) => {
+        err ? console.log(err) : console.log("Successfully removed item");
+    });
+    res.redirect("/");
 })
 
 
